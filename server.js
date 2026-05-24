@@ -9,8 +9,10 @@ const express = require('express');
 const https   = require('https');
 const crypto  = require('crypto');
 const path    = require('path');
+const multer  = require('multer');
 
-const app = express();
+const app    = express();
+const upload = multer({ storage: multer.memoryStorage() });
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -131,6 +133,59 @@ async function runCampaign(id, contactos, config) {
 
   camp.running = false;
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function cleanPhone(raw) {
+  return String(raw).replace(/[^\d]/g, '');
+}
+
+function parseCsvPhones(buffer) {
+  const lines = buffer.toString('utf8').split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''));
+  const col = headers.findIndex(h => h === 'telefono');
+  if (col === -1) return [];
+  return lines.slice(1)
+    .map(line => cleanPhone(line.split(',')[col] ?? ''))
+    .filter(Boolean);
+}
+
+// ─── POST /api/campaign/start ─────────────────────────────────────────────────
+
+app.post('/api/campaign/start', upload.single('csv'), (req, res) => {
+  const { mediaId, variableText, contactos: contactosStr } = req.body ?? {};
+  const texto = variableText;
+
+  if (!mediaId || !texto)
+    return res.status(400).json({ error: 'Faltan campos obligatorios: mediaId, variableText' });
+
+  let contactos = [];
+
+  if (contactosStr && typeof contactosStr === 'string') {
+    // Fuente: campo JSON "contactos" — string con números separados por comas
+    contactos = contactosStr.split(',').map(cleanPhone).filter(Boolean);
+  } else if (req.file) {
+    // Fuente: archivo CSV con columna "Telefono"
+    contactos = parseCsvPhones(req.file.buffer);
+  } else {
+    return res.status(400).json({ error: 'Se requiere un archivo CSV o el campo "contactos" con números separados por comas' });
+  }
+
+  if (contactos.length === 0)
+    return res.status(400).json({ error: 'No se encontraron números de teléfono válidos' });
+
+  const config     = { mediaId, texto };
+  const campaniaId = createCampaign(contactos.length);
+
+  res.json({ ok: true, total: contactos.length, campaniaId });
+
+  runCampaign(campaniaId, contactos, config).catch(err => {
+    console.error(`[${campaniaId}] Error de campaña:`, err);
+    const camp = campaigns.get(campaniaId);
+    if (camp) camp.running = false;
+  });
+});
 
 // ─── POST /enviar-campana ─────────────────────────────────────────────────────
 
