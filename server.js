@@ -48,7 +48,7 @@ function sendWhatsApp(phone, { mediaId, texto }) {
       components: [
         {
           type      : 'header',
-          parameters: [{ type: 'image', image: { id: mediaId } }],
+          parameters: [{ type: 'image', image: { id: parseInt(mediaId) } }],
         },
         {
           type      : 'body',
