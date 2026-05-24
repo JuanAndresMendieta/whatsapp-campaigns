@@ -1,7 +1,7 @@
 'use strict';
 
 const BEARER_TOKEN    = "EAAe6vgBhb1cBRTBQL2E4jOuITEq68OK2cPfq2lnkNgQQZCNJ5TmtBMZCFEZAPrhQBbM4dlGw7A04akH75Ct29Nxg3SB6zQu1gBZACEWYavvPAMMcxBCqZBtwRQ9lOdVuU6WKvfTvDHG5agBwwN6X4Qxz3pW3mT5C6nsVVQ2JZAzJ86hWZC4XJZCwLCjp8FjrVnHRDwZDZD";
-const PHONE_NUMBER_ID = " 1045918755281843";
+const PHONE_NUMBER_ID = "1045918755281843";
 const TEMPLATE_NAME   = "marketing_jam";
 const TEMPLATE_LANG   = "es_CO";
 
@@ -61,7 +61,7 @@ function sendWhatsApp(phone, { mediaId, texto }) {
   return new Promise(resolve => {
     const options = {
       hostname: 'graph.facebook.com',
-      path    : `/v20.0/${PHONE_NUMBER_ID}/messages`,
+      path    : `/v25.0/${PHONE_NUMBER_ID}/messages`,
       method  : 'POST',
       headers : {
         'Authorization' : `Bearer ${BEARER_TOKEN}`,
@@ -105,8 +105,45 @@ const BATCH_SIZE  = 20;
 const BATCH_DELAY = 1000;  // ms entre lotes
 const MSG_DELAY   = 150;   // ms entre mensajes dentro de un lote
 
+function sendSummaryNotification(camp, durationMin) {
+  const text =
+    `✅ Campaña terminada\nTotal: ${camp.total}\nEnviados: ${camp.sent}\nErrores: ${camp.errors}\nDuración: ${durationMin} minutos`;
+
+  const payload = JSON.stringify({
+    messaging_product: 'whatsapp',
+    to  : '573232005614',
+    type: 'text',
+    text: { body: text },
+  });
+
+  const options = {
+    hostname: 'graph.facebook.com',
+    path    : `/v25.0/${PHONE_NUMBER_ID.trim()}/messages`,
+    method  : 'POST',
+    headers : {
+      'Authorization' : `Bearer ${BEARER_TOKEN}`,
+      'Content-Type'  : 'application/json',
+      'Content-Length': Buffer.byteLength(payload),
+    },
+  };
+
+  const req = https.request(options, res => {
+    let raw = '';
+    res.on('data', chunk => { raw += chunk; });
+    res.on('end', () => {
+      if (res.statusCode !== 200)
+        console.error('[resumen] Error al enviar notificación:', raw);
+    });
+  });
+
+  req.on('error', err => console.error('[resumen] Error de red:', err.message));
+  req.write(payload);
+  req.end();
+}
+
 async function runCampaign(id, contactos, config) {
-  const camp = campaigns.get(id);
+  const camp      = campaigns.get(id);
+  const startTime = Date.now();
 
   for (let i = 0; i < contactos.length; i += BATCH_SIZE) {
     const batch = contactos.slice(i, i + BATCH_SIZE);
@@ -132,6 +169,9 @@ async function runCampaign(id, contactos, config) {
   }
 
   camp.running = false;
+
+  const durationMin = ((Date.now() - startTime) / 60000).toFixed(1);
+  sendSummaryNotification(camp, durationMin);
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
