@@ -1,0 +1,181 @@
+'use strict';
+
+const BEARER_TOKEN    = "EAAe6vgBhb1cBRTBQL2E4jOuITEq68OK2cPfq2lnkNgQQZCNJ5TmtBMZCFEZAPrhQBbM4dlGw7A04akH75Ct29Nxg3SB6zQu1gBZACEWYavvPAMMcxBCqZBtwRQ9lOdVuU6WKvfTvDHG5agBwwN6X4Qxz3pW3mT5C6nsVVQ2JZAzJ86hWZC4XJZCwLCjp8FjrVnHRDwZDZD";
+const PHONE_NUMBER_ID = " 1045918755281843";
+const TEMPLATE_NAME   = "marketing_jam";
+const TEMPLATE_LANG   = "es_CO";
+
+const express = require('express');
+const https   = require('https');
+const crypto  = require('crypto');
+const path    = require('path');
+
+const app = express();
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ─── Campaign store ───────────────────────────────────────────────────────────
+// Map<campaniaId, CampaignState>
+const campaigns = new Map();
+
+function createCampaign(total) {
+  const id = crypto.randomUUID();
+  campaigns.set(id, {
+    id,
+    total,
+    sent    : 0,
+    errors  : 0,
+    pending : total,
+    running : true,
+    log     : [],
+    createdAt: new Date().toISOString(),
+  });
+  return id;
+}
+
+// ─── WhatsApp sender ──────────────────────────────────────────────────────────
+
+function sendWhatsApp(phone, { mediaId, texto }) {
+  const payload = JSON.stringify({
+    messaging_product: 'whatsapp',
+    to  : phone,
+    type: 'template',
+    template: {
+      name    : TEMPLATE_NAME,
+      language: { code: TEMPLATE_LANG },
+      components: [
+        {
+          type      : 'header',
+          parameters: [{ type: 'image', image: { id: mediaId } }],
+        },
+        {
+          type      : 'body',
+          parameters: [{ type: 'text', text: texto }],
+        },
+      ],
+    },
+  });
+
+  return new Promise(resolve => {
+    const options = {
+      hostname: 'graph.facebook.com',
+      path    : `/v20.0/${PHONE_NUMBER_ID}/messages`,
+      method  : 'POST',
+      headers : {
+        'Authorization' : `Bearer ${BEARER_TOKEN}`,
+        'Content-Type'  : 'application/json',
+        'Content-Length': Buffer.byteLength(payload),
+      },
+    };
+
+    const req = https.request(options, res => {
+      let raw = '';
+      res.on('data', chunk => { raw += chunk; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(raw);
+          if (res.statusCode === 200) {
+            resolve({ ok: true, messageId: json.messages?.[0]?.id ?? '' });
+          } else {
+            resolve({ ok: false, error: json.error?.message ?? `HTTP ${res.statusCode}` });
+          }
+        } catch {
+          resolve({ ok: false, error: 'Respuesta inválida de la API' });
+        }
+      });
+    });
+
+    req.setTimeout(12000, () => {
+      req.destroy();
+      resolve({ ok: false, error: 'Timeout' });
+    });
+    req.on('error', err => resolve({ ok: false, error: err.message }));
+    req.write(payload);
+    req.end();
+  });
+}
+
+// ─── Campaign runner ──────────────────────────────────────────────────────────
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+const BATCH_SIZE  = 20;
+const BATCH_DELAY = 1000;  // ms entre lotes
+const MSG_DELAY   = 150;   // ms entre mensajes dentro de un lote
+
+async function runCampaign(id, contactos, config) {
+  const camp = campaigns.get(id);
+
+  for (let i = 0; i < contactos.length; i += BATCH_SIZE) {
+    const batch = contactos.slice(i, i + BATCH_SIZE);
+
+    for (let j = 0; j < batch.length; j++) {
+      const phone  = batch[j];
+      const result = await sendWhatsApp(phone, config);
+
+      camp.log.push({
+        phone,
+        status   : result.ok ? 'OK' : 'ERROR',
+        detail   : result.ok ? (result.messageId || '') : result.error,
+        timestamp: new Date().toISOString(),
+      });
+
+      camp.pending--;
+      result.ok ? camp.sent++ : camp.errors++;
+
+      if (j < batch.length - 1) await sleep(MSG_DELAY);
+    }
+
+    if (i + BATCH_SIZE < contactos.length) await sleep(BATCH_DELAY);
+  }
+
+  camp.running = false;
+}
+
+// ─── POST /enviar-campana ─────────────────────────────────────────────────────
+
+app.post('/enviar-campana', (req, res) => {
+  const { mediaId, texto, contactos } = req.body ?? {};
+
+  if (!mediaId || !texto)
+    return res.status(400).json({ error: 'Faltan campos obligatorios: mediaId, texto' });
+
+  if (!Array.isArray(contactos) || contactos.length === 0)
+    return res.status(400).json({ error: 'contactos debe ser un array no vacío de teléfonos' });
+
+  const config     = { mediaId, texto };
+  const campaniaId = createCampaign(contactos.length);
+
+  res.json({ ok: true, total: contactos.length, campaniaId });
+
+  runCampaign(campaniaId, contactos, config).catch(err => {
+    console.error(`[${campaniaId}] Error de campaña:`, err);
+    const camp = campaigns.get(campaniaId);
+    if (camp) camp.running = false;
+  });
+});
+
+// ─── GET /status/:campaniaId ──────────────────────────────────────────────────
+
+app.get('/status/:campaniaId', (req, res) => {
+  const camp = campaigns.get(req.params.campaniaId);
+
+  if (!camp)
+    return res.status(404).json({ error: 'Campaña no encontrada' });
+
+  res.json({
+    campaniaId: camp.id,
+    running   : camp.running,
+    total     : camp.total,
+    sent      : camp.sent,
+    errors    : camp.errors,
+    pending   : camp.pending,
+    createdAt : camp.createdAt,
+    log       : camp.log,
+  });
+});
+
+// ─── Start ────────────────────────────────────────────────────────────────────
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Servidor corriendo en http://localhost:${PORT}`));
