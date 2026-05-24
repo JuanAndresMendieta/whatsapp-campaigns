@@ -61,6 +61,8 @@ function sendWhatsApp(phone, { mediaId, texto }) {
     },
   });
 
+  console.log('Payload enviado:', payload);
+
   return new Promise(resolve => {
     const options = {
       hostname: 'graph.facebook.com',
