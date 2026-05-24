@@ -54,6 +54,9 @@ function sendWhatsApp(phone, { mediaId, texto }) {
           type      : 'body',
           parameters: [{ type: 'text', text: texto }],
         },
+        {
+         type: 'footer'
+        }
       ],
     },
   });
