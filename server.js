@@ -1,9 +1,9 @@
 'use strict';
 
-const BEARER_TOKEN    = "EAAe6vgBhb1cBRoUSCXpq6MGuG6dBZCdnBlEnTJhHzAQLfhbRB1wA6BgMjkYUxkD9bj8xclgGc885BMT4Wcc59bhqgb2CZCFfJeZAxfGYDBOD1FZCjw5FMbOEdwPZBOwxYVR5pQxU3TyvvBnqYJrdk7ZBCZBfPKTioY5c4skSXkkaXO1QKsNy9oE1PEZCPjVu7GqSZBwZDZD";
-const PHONE_NUMBER_ID = "1045918755281843";
-const TEMPLATE_NAME   = "marketing_jam_";
-const TEMPLATE_LANG   = "en";
+const BEARER_TOKEN    = "EAANBwTjRP1QBReX4S4q9x4OmLNUsuPryRNqAVp5jINqZACZBcB3AJ3C1vC1MIQCOIpZAvBKNACCqyo448uSdrh9QF1w1R7XMaAZA145J7Wmtt6s2pPvgFRrI1gvZCMFTPqOCyjixYQZADCrDzRZB5T4Y1S7mKThkdz9u5V1dx88sE9gZCVOODAymBEVNovdZCxCVL1AZDZD";
+const PHONE_NUMBER_ID = "1080731918454075";
+const TEMPLATE_NAME   = "campana_masiva_y";
+const TEMPLATE_LANG   = "es_CO";
 
 const express = require('express');
 const https   = require('https');
