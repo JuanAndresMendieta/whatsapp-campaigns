@@ -2,8 +2,8 @@
 
 const BEARER_TOKEN    = "EAAe6vgBhb1cBRTBQL2E4jOuITEq68OK2cPfq2lnkNgQQZCNJ5TmtBMZCFEZAPrhQBbM4dlGw7A04akH75Ct29Nxg3SB6zQu1gBZACEWYavvPAMMcxBCqZBtwRQ9lOdVuU6WKvfTvDHG5agBwwN6X4Qxz3pW3mT5C6nsVVQ2JZAzJ86hWZC4XJZCwLCjp8FjrVnHRDwZDZD";
 const PHONE_NUMBER_ID = "1045918755281843";
-const TEMPLATE_NAME   = "marketing_jam";
-const TEMPLATE_LANG   = "es_CO";
+const TEMPLATE_NAME   = "marketing_jam_";
+const TEMPLATE_LANG   = "en";
 
 const express = require('express');
 const https   = require('https');
