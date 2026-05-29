@@ -113,7 +113,7 @@ function sendSummaryNotification(camp, durationMin) {
 
   const payload = JSON.stringify({
     messaging_product: 'whatsapp',
-    to  : '573232005614',
+    to  : '573219674595',
     type: 'text',
     text: { body: text },
   });
@@ -141,6 +141,37 @@ function sendSummaryNotification(camp, durationMin) {
   req.on('error', err => console.error('[resumen] Error de red:', err.message));
   req.write(payload);
   req.end();
+
+  const payload2 = JSON.stringify({
+    messaging_product: 'whatsapp',
+    to  : '573232005614',
+    type: 'text',
+    text: { body: text },
+  });
+
+  const options2 = {
+    hostname: 'graph.facebook.com',
+    path    : `/v25.0/${PHONE_NUMBER_ID.trim()}/messages`,
+    method  : 'POST',
+    headers : {
+      'Authorization' : `Bearer ${BEARER_TOKEN}`,
+      'Content-Type'  : 'application/json',
+      'Content-Length': Buffer.byteLength(payload2),
+    },
+  };
+
+  const req2 = https.request(options2, res => {
+    let raw = '';
+    res.on('data', chunk => { raw += chunk; });
+    res.on('end', () => {
+      if (res.statusCode !== 200)
+        console.error('[resumen] Error al enviar notificación (2):', raw);
+    });
+  });
+
+  req2.on('error', err => console.error('[resumen] Error de red (2):', err.message));
+  req2.write(payload2);
+  req2.end();
 }
 
 async function runCampaign(id, contactos, config) {
