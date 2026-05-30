@@ -1,8 +1,8 @@
 'use strict';
 
-const BEARER_TOKEN    = "EAANBwTjRP1QBRlNlPNV0jrgwVbiewAKEoI6vluVTR5ZBN0OkjaxBZC8h1c3vm3zitY4N9v1G2v4X4MkGaM3e3npZCKgw09dazJjL9b6ZCFsvnP1SfjswDnIJHZAt0ZBhsfXZCZA8HYG2LiSmsggDVRUbk8G9SP9hiIFIjMcz6h4DKTvAksL4KkE76hZBbNuy9FEds2QZDZD";
-const PHONE_NUMBER_ID = "1080731918454075";
-const TEMPLATE_NAME   = "campana_masiva_y";
+const BEARER_TOKEN    = "EAAS1VLtqlw4BRrY8t8jOsIcjIHdGi0HkVp3Je7amC4S6YEFnrbF0g35IKjAcwNyi0vnbDVrDcTqNsbirCqG39RtTDg6EnuKfJnN0ppkfvlcwBXRTTQTJlqOsMoKCh8GlMCrLwnJZC7CyqhDs2rwr8zxuJ73YAPmYcnM1i45OV8rpyH196Mmp21vZBU8zLWuQZDZD";
+const PHONE_NUMBER_ID = "3687057888095516";
+const TEMPLATE_NAME   = "campanas_cda";
 const TEMPLATE_LANG   = "es_CO";
 
 const express = require('express');
@@ -110,7 +110,7 @@ const MSG_DELAY   = 150;   // ms entre mensajes dentro de un lote
 function sendSummaryNotification(camp, durationMin) {
   const text =
     `✅ Campaña terminada\nTotal: ${camp.total}\nEnviados: ${camp.sent}\nErrores: ${camp.errors}\nDuración: ${durationMin} minutos`;
-
+/*
   const payload = JSON.stringify({
     messaging_product: 'whatsapp',
     to  : '573219674595',
@@ -141,7 +141,7 @@ function sendSummaryNotification(camp, durationMin) {
   req.on('error', err => console.error('[resumen] Error de red:', err.message));
   req.write(payload);
   req.end();
-
+*/
   const payload2 = JSON.stringify({
     messaging_product: 'whatsapp',
     to  : '573232005614',
