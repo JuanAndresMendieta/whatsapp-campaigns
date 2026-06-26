@@ -43,6 +43,10 @@ function sendWhatsApp(phone, { texto }) {
       language: { code: TEMPLATE_LANG },
       components: [
         {
+          type      : 'header',
+          parameters: [],
+        },
+        {
           type      : 'body',
           parameters: [{ type: 'text', text: texto }],
         }
