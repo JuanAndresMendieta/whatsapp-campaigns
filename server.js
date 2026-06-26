@@ -2,7 +2,7 @@
 
 const BEARER_TOKEN    = "EAAS1VLtqlw4BRrY8t8jOsIcjIHdGi0HkVp3Je7amC4S6YEFnrbF0g35IKjAcwNyi0vnbDVrDcTqNsbirCqG39RtTDg6EnuKfJnN0ppkfvlcwBXRTTQTJlqOsMoKCh8GlMCrLwnJZC7CyqhDs2rwr8zxuJ73YAPmYcnM1i45OV8rpyH196Mmp21vZBU8zLWuQZDZD";
 const PHONE_NUMBER_ID = "1178313532031768";
-const TEMPLATE_NAME   = "campanas_cda ";
+const TEMPLATE_NAME   = "campanas_cda";
 const TEMPLATE_LANG   = "es_CO";
 
 const express = require('express');
