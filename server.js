@@ -16,8 +16,6 @@ const upload = multer({ storage: multer.memoryStorage() });
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ─── Campaign store ───────────────────────────────────────────────────────────
-// Map<campaniaId, CampaignState>
 const campaigns = new Map();
 
 function createCampaign(total) {
@@ -34,8 +32,6 @@ function createCampaign(total) {
   });
   return id;
 }
-
-// ─── WhatsApp sender ──────────────────────────────────────────────────────────
 
 function sendWhatsApp(phone, { mediaId, texto }) {
   const payload = JSON.stringify({
@@ -76,6 +72,7 @@ function sendWhatsApp(phone, { mediaId, texto }) {
       let raw = '';
       res.on('data', chunk => { raw += chunk; });
       res.on('end', () => {
+        console.log('Respuesta Meta RAW:', raw);
         try {
           const json = JSON.parse(raw);
           if (res.statusCode === 200) {
@@ -99,13 +96,11 @@ function sendWhatsApp(phone, { mediaId, texto }) {
   });
 }
 
-// ─── Campaign runner ──────────────────────────────────────────────────────────
-
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const BATCH_SIZE  = 20;
-const BATCH_DELAY = 1000;  // ms entre lotes
-const MSG_DELAY   = 150;   // ms entre mensajes dentro de un lote
+const BATCH_DELAY = 1000;
+const MSG_DELAY   = 150;
 
 function sendSummaryNotification(camp, durationMin) {
   const text =
@@ -207,8 +202,6 @@ async function runCampaign(id, contactos, config) {
   sendSummaryNotification(camp, durationMin);
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function cleanPhone(raw) {
   return String(raw).replace(/[^\d]/g, '');
 }
@@ -224,8 +217,6 @@ function parseCsvPhones(buffer) {
     .filter(Boolean);
 }
 
-// ─── POST /api/campaign/start ─────────────────────────────────────────────────
-
 app.post('/api/campaign/start', upload.single('csv'), (req, res) => {
   const { mediaId, variableText, contactos: contactosStr } = req.body ?? {};
   const texto = variableText;
@@ -236,10 +227,8 @@ app.post('/api/campaign/start', upload.single('csv'), (req, res) => {
   let contactos = [];
 
   if (contactosStr && typeof contactosStr === 'string') {
-    // Fuente: campo JSON "contactos" — string con números separados por comas
     contactos = contactosStr.split(',').map(cleanPhone).filter(Boolean);
   } else if (req.file) {
-    // Fuente: archivo CSV con columna "Telefono"
     contactos = parseCsvPhones(req.file.buffer);
   } else {
     return res.status(400).json({ error: 'Se requiere un archivo CSV o el campo "contactos" con números separados por comas' });
@@ -259,8 +248,6 @@ app.post('/api/campaign/start', upload.single('csv'), (req, res) => {
     if (camp) camp.running = false;
   });
 });
-
-// ─── POST /enviar-campana ─────────────────────────────────────────────────────
 
 app.post('/enviar-campana', (req, res) => {
   const { mediaId, texto, contactos } = req.body ?? {};
@@ -283,8 +270,6 @@ app.post('/enviar-campana', (req, res) => {
   });
 });
 
-// ─── GET /status/:campaniaId ──────────────────────────────────────────────────
-
 app.get('/status/:campaniaId', (req, res) => {
   const camp = campaigns.get(req.params.campaniaId);
 
@@ -302,8 +287,6 @@ app.get('/status/:campaniaId', (req, res) => {
     log       : camp.log,
   });
 });
-
-// ─── Start ────────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor corriendo en http://localhost:${PORT}`));
