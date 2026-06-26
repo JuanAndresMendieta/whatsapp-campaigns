@@ -33,7 +33,7 @@ function createCampaign(total) {
   return id;
 }
 
-function sendWhatsApp(phone, { mediaId, texto }) {
+function sendWhatsApp(phone, { texto }) {
   const payload = JSON.stringify({
     messaging_product: 'whatsapp',
     to  : phone,
@@ -42,10 +42,6 @@ function sendWhatsApp(phone, { mediaId, texto }) {
       name    : TEMPLATE_NAME,
       language: { code: TEMPLATE_LANG },
       components: [
-        {
-          type      : 'header',
-          parameters: [{ type: 'image', image: { id: String(mediaId) } }],
-        },
         {
           type      : 'body',
           parameters: [{ type: 'text', text: texto }],
@@ -218,11 +214,11 @@ function parseCsvPhones(buffer) {
 }
 
 app.post('/api/campaign/start', upload.single('csv'), (req, res) => {
-  const { mediaId, variableText, contactos: contactosStr } = req.body ?? {};
+  const { variableText, contactos: contactosStr } = req.body ?? {};
   const texto = variableText;
 
-  if (!mediaId || !texto)
-    return res.status(400).json({ error: 'Faltan campos obligatorios: mediaId, variableText' });
+  if (!texto)
+    return res.status(400).json({ error: 'Falta campo obligatorio: variableText' });
 
   let contactos = [];
 
@@ -237,7 +233,7 @@ app.post('/api/campaign/start', upload.single('csv'), (req, res) => {
   if (contactos.length === 0)
     return res.status(400).json({ error: 'No se encontraron números de teléfono válidos' });
 
-  const config     = { mediaId, texto };
+  const config     = { texto };
   const campaniaId = createCampaign(contactos.length);
 
   res.json({ ok: true, total: contactos.length, campaniaId });
@@ -250,15 +246,15 @@ app.post('/api/campaign/start', upload.single('csv'), (req, res) => {
 });
 
 app.post('/enviar-campana', (req, res) => {
-  const { mediaId, texto, contactos } = req.body ?? {};
+  const { texto, contactos } = req.body ?? {};
 
-  if (!mediaId || !texto)
-    return res.status(400).json({ error: 'Faltan campos obligatorios: mediaId, texto' });
+  if (!texto)
+    return res.status(400).json({ error: 'Falta campo obligatorio: texto' });
 
   if (!Array.isArray(contactos) || contactos.length === 0)
     return res.status(400).json({ error: 'contactos debe ser un array no vacío de teléfonos' });
 
-  const config     = { mediaId, texto };
+  const config     = { texto };
   const campaniaId = createCampaign(contactos.length);
 
   res.json({ ok: true, total: contactos.length, campaniaId });
